@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
     ],
   },
+  serverExternalPackages: ["pg", "bcryptjs"],
   poweredByHeader: false,
   compress: true,
 };
