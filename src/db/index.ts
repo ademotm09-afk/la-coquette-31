@@ -13,7 +13,7 @@ if (isDbConfigured) {
   };
 
   // Neon requires SSL — detect by hostname
-  const needsSsl = databaseUrl.includes("neon.tech") || databaseUrl.includes("sslmode=require");
+  const needsSsl = databaseUrl!.includes("neon.tech") || databaseUrl!.includes("sslmode=require");
 
   _pool =
     globalForDb.__arenaNextJsPostgresqlPool ??
