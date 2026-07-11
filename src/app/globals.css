@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-display);
+}
+
+:root {
+  color-scheme: light;
+  --brown: #6f4e37;
+  --brown-dark: #3e2723;
+  --beige: #f5efe6;
+  --cream: #faf8f5;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; background: var(--cream); overflow-x: clip; }
+body { margin: 0; min-width: 320px; background: var(--cream); color: var(--brown-dark); font-family: var(--font-sans), system-ui, sans-serif; overflow-x: clip; text-rendering: optimizeLegibility; }
+html[dir="rtl"] body { font-family: var(--font-arabic), var(--font-sans), sans-serif; }
+html[dir="rtl"] .font-serif { font-family: var(--font-arabic), var(--font-display), serif; letter-spacing: 0; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, select { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+img { user-select: none; }
+::selection { background: #d9c5b4; color: #3e2723; }
+:focus-visible { outline: 2px solid #805f4a; outline-offset: 3px; }
+input[type="range"] { width: 100%; }
+summary::-webkit-details-marker { display: none; }
+
+::-webkit-scrollbar { width: 8px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cdbbae; border-radius: 999px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+@media print {
+  header, footer, nav, button, a[href*="wa.me"] { display: none !important; }
+  body { background: white; }
+}
