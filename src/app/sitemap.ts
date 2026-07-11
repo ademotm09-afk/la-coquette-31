@@ -1,19 +1,30 @@
 import type { MetadataRoute } from "next";
-import { db } from "@/db";
-import { products } from "@/db/schema";
-import { eq } from "drizzle-orm";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lacoquette.dz";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const allProducts = await db.select({ slug: products.slug, updatedAt: products.updatedAt }).from(products).where(eq(products.active, true));
+  let productUrls: MetadataRoute.Sitemap = [];
 
-  const productUrls: MetadataRoute.Sitemap = allProducts.map((product) => ({
-    url: `${baseUrl}/products/${product.slug}`,
-    lastModified: product.updatedAt,
-    changeFrequency: "weekly" as const,
-    priority: 0.8,
-  }));
+  try {
+    const { db } = await import("@/db");
+    const { products } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+
+    const allProducts = await db
+      .select({ slug: products.slug, updatedAt: products.updatedAt })
+      .from(products)
+      .where(eq(products.active, true));
+
+    productUrls = allProducts.map((product) => ({
+      url: `${baseUrl}/products/${product.slug}`,
+      lastModified: product.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }));
+  } catch (error) {
+    // Database not available during build — return only static pages
+    console.warn("Sitemap: database unavailable, returning static pages only.");
+  }
 
   return [
     {

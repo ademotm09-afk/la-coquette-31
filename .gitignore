@@ -36,3 +36,7 @@ uploads/
 
 # logs
 *.log
+
+# temp files
+push_output.txt
+push_result.txt
