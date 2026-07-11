@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, isDbConfigured } from "@/db";
 import { categories, orderItems, orders, products, shippingRates } from "@/db/schema";
 import { categorySeeds, productSeeds, wilayaSeeds } from "@/lib/catalog";
 import { asc, count, desc, eq } from "drizzle-orm";
@@ -6,6 +6,7 @@ import { asc, count, desc, eq } from "drizzle-orm";
 let bootstrapPromise: Promise<void> | null = null;
 
 export async function bootstrapStore() {
+  if (!isDbConfigured) return;
   if (!bootstrapPromise) {
     bootstrapPromise = (async () => {
       const [categoryCount, productCount, rateCount] = await Promise.all([
@@ -32,6 +33,9 @@ export async function bootstrapStore() {
 }
 
 export async function getStoreData() {
+  if (!isDbConfigured) {
+    return { products: [], categories: [], rates: [] };
+  }
   await bootstrapStore();
   const [storeProducts, storeCategories, rates] = await Promise.all([
     db.select().from(products).where(eq(products.active, true)).orderBy(desc(products.featured), desc(products.createdAt)),
@@ -42,6 +46,7 @@ export async function getStoreData() {
 }
 
 export async function getProductBySlug(slug: string) {
+  if (!isDbConfigured) return null;
   await bootstrapStore();
   const [product] = await db.select().from(products).where(eq(products.slug, slug)).limit(1);
   if (!product || !product.active) return null;
@@ -55,6 +60,9 @@ export async function getProductBySlug(slug: string) {
 }
 
 export async function getAdminData() {
+  if (!isDbConfigured) {
+    return { products: [], orders: [], rates: [] };
+  }
   await bootstrapStore();
   const [allProducts, allOrders, allItems, rates] = await Promise.all([
     db.select().from(products).orderBy(desc(products.createdAt)),
