@@ -147,9 +147,21 @@ export const wishlists = pgTable(
   ],
 );
 
+export const siteSettings = pgTable(
+  "site_settings",
+  {
+    id: serial("id").primaryKey(),
+    key: text("key").notNull(),
+    value: text("value").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("site_settings_key_idx").on(table.key)],
+);
+
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type ShippingRate = typeof shippingRates.$inferSelect;
 export type Wishlist = typeof wishlists.$inferSelect;
+export type SiteSetting = typeof siteSettings.$inferSelect;

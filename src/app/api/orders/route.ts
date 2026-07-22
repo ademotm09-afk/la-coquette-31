@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { orderItems, orders, products, shippingRates } from "@/db/schema";
 import { bootstrapStore } from "@/lib/data";
+import { sendOrderNotification } from "@/lib/email";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 type RequestedItem = { productId: number; quantity: number; size: string; color: string };
@@ -90,6 +91,28 @@ export async function POST(request: Request) {
       }
       return order;
     });
+
+    // Send email notification (non-blocking)
+    sendOrderNotification({
+      orderNumber: created.orderNumber,
+      customerName: fullName,
+      phone,
+      address,
+      wilaya: created.wilayaName,
+      commune,
+      items: checkedItems.map((item) => ({
+        productName: item.product.nameFr,
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity,
+        unitPrice: item.product.price,
+        total: item.total,
+      })),
+      deliveryType,
+      shippingPrice: created.shippingPrice,
+      total: created.total,
+      createdAt: created.createdAt,
+    }).catch(() => {});
 
     return Response.json({ orderNumber: created.orderNumber, total: created.total }, { status: 201 });
   } catch (error) {

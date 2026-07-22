@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Cormorant_Garamond, Manrope, Noto_Kufi_Arabic } from "next/font/google";
+import { MessageCircle } from "lucide-react";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-display", display: "swap", weight: ["400", "500", "600", "700"] });
@@ -20,5 +21,20 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 5, themeColor: "#FAF8F5", colorScheme: "light" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return <html lang="fr" dir="ltr" suppressHydrationWarning><body className={`${manrope.variable} ${cormorant.variable} ${arabic.variable}`}>{children}</body></html>;
+  return (
+    <html lang="fr" dir="ltr" suppressHydrationWarning>
+      <body className={`${manrope.variable} ${cormorant.variable} ${arabic.variable}`}>
+        {children}
+        <a
+          href="https://wa.me/213541442571?text=Bonjour%20La%20Coquette"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="WhatsApp"
+          className="fixed bottom-[84px] end-4 z-40 grid size-13 place-items-center rounded-full bg-[#617f5a] text-white shadow-[0_10px_28px_rgba(54,83,49,.3)] transition hover:-translate-y-1 sm:bottom-5 sm:end-5"
+        >
+          <MessageCircle size={22} strokeWidth={2.2} />
+        </a>
+      </body>
+    </html>
+  );
 }

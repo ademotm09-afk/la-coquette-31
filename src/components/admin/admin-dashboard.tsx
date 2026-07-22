@@ -4,18 +4,20 @@ import { FormEvent, useMemo, useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { BarChart3, Calendar, ChevronDown, Download, Edit3, ExternalLink, FileText, LayoutDashboard, LogOut, Menu, Package, Plus, Printer, Save, Search, ShoppingBag, Trash2, Truck, Upload, Users, X } from "lucide-react";
+import { BarChart3, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Edit3, ExternalLink, FileText, LayoutDashboard, LogOut, Menu, Package, Plus, Printer, Save, Search, Settings, ShoppingBag, Trash2, Truck, Upload, Users, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Order, OrderItem, Product, ShippingRate } from "@/db/schema";
+import type { SiteSettingsMap } from "@/lib/site-settings";
 import { RevenueChart, OrdersByWilayaChart, OrderStatusChart } from "./admin-charts";
 
 type AdminOrder = Order & { items: OrderItem[] };
-type Tab = "dashboard" | "products" | "orders" | "customers" | "delivery";
+type Tab = "dashboard" | "products" | "orders" | "customers" | "delivery" | "settings";
 
 type Props = {
   initialProducts: Product[];
   initialOrders: AdminOrder[];
   initialRates: ShippingRate[];
+  initialSettings: SiteSettingsMap;
   adminEmail: string;
 };
 
@@ -40,17 +42,19 @@ const navItems: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "orders", label: "Commandes", icon: ShoppingBag },
   { id: "customers", label: "Clientes", icon: Users },
   { id: "delivery", label: "Livraison", icon: Truck },
+  { id: "settings", label: "Paramètres", icon: Settings },
 ];
 
 const money = (v: number) => `${new Intl.NumberFormat("fr-DZ").format(v)} DA`;
 const safe = (v: unknown) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c] || c);
 
-export function AdminDashboard({ initialProducts, initialOrders, initialRates, adminEmail }: Props) {
+export function AdminDashboard({ initialProducts, initialOrders, initialRates, initialSettings, adminEmail }: Props) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [sidebar, setSidebar] = useState(false);
   const [products, setProducts] = useState(initialProducts);
   const [orders, setOrders] = useState(initialOrders);
   const [rates, setRates] = useState(initialRates);
+  const [siteSettings, setSiteSettings] = useState<SiteSettingsMap>(initialSettings);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [productModal, setProductModal] = useState(false);
@@ -67,6 +71,11 @@ export function AdminDashboard({ initialProducts, initialOrders, initialRates, a
   const [wilayaForm, setWilayaForm] = useState<WilayaForm>({ code: 0, name: "", homePrice: 600, deskPrice: 450, estimatedDays: 3, active: true });
   const [editingWilaya, setEditingWilaya] = useState(false);
   const [deliverySearch, setDeliverySearch] = useState("");
+  const [orderDateFrom, setOrderDateFrom] = useState("");
+  const [orderDateTo, setOrderDateTo] = useState("");
+  const [orderSort, setOrderSort] = useState<"newest" | "oldest" | "priceHigh" | "priceLow">("newest");
+  const [orderPage, setOrderPage] = useState(1);
+  const ordersPerPage = 10;
   const [stats, setStats] = useState<{ monthlySales: { month: string; revenue: number; orders: number }[]; ordersByWilaya: { name: string; count: number; revenue: number }[]; topCustomers: { name: string; totalSpent: number; count: number }[]; bestSellingProducts: { id: number; nameFr: string; price: number; salesCount: number; images: string[]; stock: number }[]; ordersByStatus: { new: number; confirmed: number; preparing: number; shipped: number; delivered: number; cancelled: number } } | null>(null);
 
   useEffect(() => {
@@ -76,10 +85,28 @@ export function AdminDashboard({ initialProducts, initialOrders, initialRates, a
   }, [tab, stats]);
 
   const revenue = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
-  const filteredOrders = orders.filter((o) => {
+  const filteredOrders = useMemo(() => {
     const t = search.toLowerCase();
-    return (status === "all" || o.status === status) && (!t || [o.orderNumber, o.customerName, o.phone, o.wilayaName].some((v) => v.toLowerCase().includes(t)));
-  });
+    const fromDate = orderDateFrom ? new Date(orderDateFrom) : null;
+    const toDate = orderDateTo ? new Date(orderDateTo + "T23:59:59") : null;
+    const result = orders.filter((o) => {
+      const matchStatus = status === "all" || o.status === status;
+      const matchSearch = !t || [o.orderNumber, o.customerName, o.phone, o.wilayaName].some((v) => v.toLowerCase().includes(t));
+      const orderDate = new Date(o.createdAt);
+      const matchFrom = !fromDate || orderDate >= fromDate;
+      const matchTo = !toDate || orderDate <= toDate;
+      return matchStatus && matchSearch && matchFrom && matchTo;
+    });
+    result.sort((a, b) => {
+      if (orderSort === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (orderSort === "priceHigh") return b.total - a.total;
+      if (orderSort === "priceLow") return a.total - b.total;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+    return result;
+  }, [orders, search, status, orderDateFrom, orderDateTo, orderSort]);
+  const orderPageCount = Math.max(1, Math.ceil(filteredOrders.length / ordersPerPage));
+  const paginatedOrders = filteredOrders.slice((orderPage - 1) * ordersPerPage, orderPage * ordersPerPage);
 
   const customers = useMemo(() => {
     const g = new Map<string, CustomerDetail>();
@@ -121,7 +148,7 @@ export function AdminDashboard({ initialProducts, initialOrders, initialRates, a
   }, [rates, deliverySearch]);
 
   const flash = (msg: string) => { setNotice(msg); window.setTimeout(() => setNotice(""), 2600); };
-  const selectTab = (next: Tab) => { setTab(next); setSidebar(false); setSearch(""); setCustomerSearch(""); setDeliverySearch(""); setSelectedOrders([]); setExportOpen(false); };
+  const selectTab = (next: Tab) => { setTab(next); setSidebar(false); setSearch(""); setCustomerSearch(""); setDeliverySearch(""); setSelectedOrders([]); setExportOpen(false); setOrderPage(1); setOrderDateFrom(""); setOrderDateTo(""); };
 
   const openProduct = (product?: Product) => {
     if (!product) setProductForm(emptyProduct);
@@ -190,6 +217,18 @@ export function AdminDashboard({ initialProducts, initialOrders, initialRates, a
     if (res.ok) { setRates((c) => c.filter((i) => i.code !== rate.code)); flash("Wilaya supprimée"); }
   };
 
+  const saveSettings = async (e: FormEvent) => {
+    e.preventDefault(); setSaving(true);
+    try {
+      const res = await fetch("/api/admin/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(siteSettings) });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Erreur");
+      setSiteSettings(result);
+      flash("Paramètres enregistrés");
+    } catch (err) { flash(err instanceof Error ? err.message : "Erreur"); }
+    finally { setSaving(false); }
+  };
+
   const printInvoice = (order: AdminOrder) => {
     const popup = window.open("", "_blank", "width=850,height=900"); if (!popup) return;
     const items = order.items.map((i) => `<tr><td style="padding:12px 14px;border-bottom:1px solid #eee"><strong>${safe(i.productName)}</strong><br><span style="color:#998;font-size:11px">${safe(i.size)} · ${safe(i.color)}</span></td><td style="padding:12px 14px;border-bottom:1px solid #eee;text-align:center">${i.quantity}</td><td style="padding:12px 14px;border-bottom:1px solid #eee;text-align:right">${money(i.unitPrice)}</td><td style="padding:12px 14px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${money(i.total)}</td></tr>`).join("");
@@ -256,10 +295,9 @@ export function AdminDashboard({ initialProducts, initialOrders, initialRates, a
           {/* ORDERS */}
           {tab === "orders" && <section>
             <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-1 flex-col gap-2 sm:flex-row"><label className="relative block w-full max-w-md"><Search size={16} className="absolute start-4 top-1/2 -translate-y-1/2 text-[#948074]" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Commande, cliente, téléphone…" className="h-12 w-full rounded-full border border-[#e0d6ce] bg-white pe-4 ps-11 text-sm outline-none" /></label><select value={status} onChange={(e) => setStatus(e.target.value)} className="h-12 rounded-full border border-[#e0d6ce] bg-white px-4 text-xs font-semibold outline-none"><option value="all">Tous les statuts</option>{Object.entries(statusLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+              <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap"><label className="relative block w-full max-w-md"><Search size={16} className="absolute start-4 top-1/2 -translate-y-1/2 text-[#948074]" /><input value={search} onChange={(e) => { setSearch(e.target.value); setOrderPage(1); }} placeholder="Commande, cliente, téléphone…" className="h-12 w-full rounded-full border border-[#e0d6ce] bg-white pe-4 ps-11 text-sm outline-none" /></label><select value={status} onChange={(e) => { setStatus(e.target.value); setOrderPage(1); }} className="h-12 rounded-full border border-[#e0d6ce] bg-white px-4 text-xs font-semibold outline-none"><option value="all">Tous les statuts</option>{Object.entries(statusLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select><input type="date" value={orderDateFrom} onChange={(e) => { setOrderDateFrom(e.target.value); setOrderPage(1); }} className="h-12 rounded-full border border-[#e0d6ce] bg-white px-4 text-xs outline-none" title="Date début" /><input type="date" value={orderDateTo} onChange={(e) => { setOrderDateTo(e.target.value); setOrderPage(1); }} className="h-12 rounded-full border border-[#e0d6ce] bg-white px-4 text-xs outline-none" title="Date fin" /><select value={orderSort} onChange={(e) => setOrderSort(e.target.value as typeof orderSort)} className="h-12 rounded-full border border-[#e0d6ce] bg-white px-4 text-xs font-semibold outline-none"><option value="newest">Plus récent</option><option value="oldest">Plus ancien</option><option value="priceHigh">Prix ↓</option><option value="priceLow">Prix ↑</option></select></div>
               <div className="flex items-center gap-2">
-                {selectedOrders.length > 0 && <span className="rounded-full bg-[#eee5dc] px-3 py-2 text-[10px] font-bold text-[#765441]">{selectedOrders.length} sélectionnée(s)</span>}
-                <div className="relative">
+                {selectedOrders.length > 0 && <span className="rounded-full bg-[#eee5dc] px-3 py-2 text-[10px] font-bold text-[#765441]">{selectedOrders.length} sélectionnée(s)</span>}                <p className="text-[10px] text-[#9a887e]">{filteredOrders.length} commande(s)</p>                <div className="relative">
                   <button onClick={() => setExportOpen(!exportOpen)} className="flex h-12 items-center gap-2 rounded-full bg-[#6f4e37] px-5 text-xs font-bold text-white"><Download size={16} /> Exporter <ChevronDown size={14} /></button>
                   {exportOpen && <div className="absolute end-0 top-full z-20 mt-2 w-56 rounded-2xl border border-[#e8dfd8] bg-white p-2 shadow-xl">
                     <p className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.1em] text-[#9a877c]">Période</p>
@@ -273,7 +311,8 @@ export function AdminDashboard({ initialProducts, initialOrders, initialRates, a
                 </div>
               </div>
             </div>
-            <div className="overflow-hidden rounded-[24px] border border-[#e7ddd5] bg-white"><OrderTable orders={filteredOrders} onStatus={updateStatus} onPrint={printInvoice} selectedOrders={selectedOrders} onToggleSelect={toggleOrderSelect} onToggleAll={toggleAllOrders} empty="Aucune commande ne correspond à votre recherche." /></div>
+            <div className="overflow-hidden rounded-[24px] border border-[#e7ddd5] bg-white"><OrderTable orders={paginatedOrders} onStatus={updateStatus} onPrint={printInvoice} selectedOrders={selectedOrders} onToggleSelect={toggleOrderSelect} onToggleAll={toggleAllOrders} empty="Aucune commande ne correspond à votre recherche." /></div>
+            {orderPageCount > 1 && <nav className="mt-6 flex items-center justify-center gap-2" aria-label="Pagination commandes"><button disabled={orderPage === 1} onClick={() => setOrderPage(orderPage - 1)} className="grid size-10 place-items-center rounded-full border border-[#ded2c7] bg-white text-xs font-bold disabled:opacity-35"><ChevronLeft size={16} /></button>{Array.from({ length: Math.min(orderPageCount, 7) }, (_, i) => { let p: number; if (orderPageCount <= 7) p = i + 1; else if (orderPage <= 4) p = i + 1; else if (orderPage >= orderPageCount - 3) p = orderPageCount - 6 + i; else p = orderPage - 3 + i; return <button key={p} onClick={() => setOrderPage(p)} className={`grid size-10 place-items-center rounded-full text-xs font-bold ${orderPage === p ? "bg-[#6f4e37] text-white" : "bg-white text-[#674c3d]"}`}>{p}</button>; })}<button disabled={orderPage === orderPageCount} onClick={() => setOrderPage(orderPage + 1)} className="grid size-10 place-items-center rounded-full border border-[#ded2c7] bg-white text-xs font-bold disabled:opacity-35"><ChevronRight size={16} /></button></nav>}
           </section>}
 
           {/* CUSTOMERS */}
@@ -314,6 +353,31 @@ export function AdminDashboard({ initialProducts, initialOrders, initialRates, a
               <div className="grid grid-cols-2 gap-2"><label><span className="mb-1.5 block text-[9px] uppercase text-[#99857a]">Domicile (DA)</span><input type="number" min="0" value={rate.homePrice} onChange={(e) => setRates((c) => c.map((i) => i.code === rate.code ? { ...i, homePrice: Number(e.target.value) } : i))} className="h-11 w-full rounded-xl border border-[#e0d5cd] px-3 text-sm outline-none" /></label><label><span className="mb-1.5 block text-[9px] uppercase text-[#99857a]">Bureau (DA)</span><input type="number" min="0" value={rate.deskPrice} onChange={(e) => setRates((c) => c.map((i) => i.code === rate.code ? { ...i, deskPrice: Number(e.target.value) } : i))} className="h-11 w-full rounded-xl border border-[#e0d5cd] px-3 text-sm outline-none" /></label></div>
               <button onClick={() => saveRate(rate)} className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#f0e8e1] text-[10px] font-bold uppercase tracking-[.08em] text-[#6d4c3b] hover:bg-[#6f4e37] hover:text-white"><Save size={13} /> Enregistrer</button>
             </article>)}</div>
+          </section>}
+
+          {/* SETTINGS */}
+          {tab === "settings" && <section>
+            <div className="max-w-3xl">
+              <h2 className="font-serif text-3xl font-semibold">Paramètres du site</h2>
+              <p className="mt-2 text-sm leading-6 text-[#8c786d]">Modifiez les informations de contact, les liens sociaux et les horaires. Les changements sont appliqués instantanément.</p>
+            </div>
+            <form onSubmit={saveSettings} className="mt-8 grid gap-5 rounded-[24px] border border-[#e8dfd8] bg-white p-6 sm:p-8">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label><span className="mb-1.5 block text-[9px] font-bold uppercase text-[#8d786d]">Numéro WhatsApp</span><input value={siteSettings.whatsappNumber} onChange={(e) => setSiteSettings({ ...siteSettings, whatsappNumber: e.target.value })} className={fc} placeholder="0541442571" /></label>
+                <label><span className="mb-1.5 block text-[9px] font-bold uppercase text-[#8d786d]">Numéro de téléphone</span><input value={siteSettings.phoneNumber} onChange={(e) => setSiteSettings({ ...siteSettings, phoneNumber: e.target.value })} className={fc} placeholder="0541442571" /></label>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label><span className="mb-1.5 block text-[9px] font-bold uppercase text-[#8d786d]">Adresse email</span><input type="email" value={siteSettings.emailAddress} onChange={(e) => setSiteSettings({ ...siteSettings, emailAddress: e.target.value })} className={fc} placeholder="web.automation.310@gmail.com" /></label>
+                <label><span className="mb-1.5 block text-[9px] font-bold uppercase text-[#8d786d]">Adresse du magasin</span><input value={siteSettings.storeAddress} onChange={(e) => setSiteSettings({ ...siteSettings, storeAddress: e.target.value })} className={fc} placeholder="Alger, Algérie" /></label>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label><span className="mb-1.5 block text-[9px] font-bold uppercase text-[#8d786d]">Lien Instagram</span><input value={siteSettings.instagramLink} onChange={(e) => setSiteSettings({ ...siteSettings, instagramLink: e.target.value })} className={fc} placeholder="https://www.instagram.com/..." /></label>
+                <label><span className="mb-1.5 block text-[9px] font-bold uppercase text-[#8d786d]">Lien Facebook</span><input value={siteSettings.facebookLink} onChange={(e) => setSiteSettings({ ...siteSettings, facebookLink: e.target.value })} className={fc} placeholder="https://www.facebook.com/..." /></label>
+              </div>
+              <label><span className="mb-1.5 block text-[9px] font-bold uppercase text-[#8d786d]">Lien Google Maps</span><input value={siteSettings.googleMapsLink} onChange={(e) => setSiteSettings({ ...siteSettings, googleMapsLink: e.target.value })} className={fc} placeholder="https://www.google.com/maps/..." /></label>
+              <label><span className="mb-1.5 block text-[9px] font-bold uppercase text-[#8d786d]">Horaires d&apos;ouverture</span><input value={siteSettings.businessHours} onChange={(e) => setSiteSettings({ ...siteSettings, businessHours: e.target.value })} className={fc} placeholder="Lun - Sam: 10:00 - 20:00" /></label>
+              <button disabled={saving} className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#65442f] to-[#846047] text-sm font-bold text-white disabled:opacity-60"><Save size={16} /> {saving ? "Enregistrement…" : "Enregistrer les paramètres"}</button>
+            </form>
           </section>}
         </main>
       </div>
