@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Cormorant_Garamond, Manrope, Noto_Kufi_Arabic } from "next/font/google";
 import { MessageCircle } from "lucide-react";
+import { SessionProvider } from "@/components/session-provider";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-display", display: "swap", weight: ["400", "500", "600", "700"] });
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr" dir="ltr" suppressHydrationWarning>
       <body className={`${manrope.variable} ${cormorant.variable} ${arabic.variable}`}>
-        {children}
+        <SessionProvider>{children}</SessionProvider>
         <a
           href="https://wa.me/213541442571?text=Bonjour%20La%20Coquette"
           target="_blank"

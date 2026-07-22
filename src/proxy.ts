@@ -16,7 +16,7 @@ function rateLimitCheck(ip: string): boolean {
   return entry.count <= MAX_API_REQUESTS;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
 
