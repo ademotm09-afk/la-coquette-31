@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronDown, Mail, MapPin, Menu, MessageCircle, Phone, Search, ShoppingBag, Sparkles, Truck, X } from "lucide-react";
+import { ChevronDown, Mail, MapPin, Menu, MessageCircle, Phone, Search, ShoppingBag, Sparkles, X } from "lucide-react";
 import { FacebookIcon as Facebook, InstagramIcon as Instagram } from "@/components/store/social-icons";
 import { AnimatePresence, motion } from "motion/react";
 import type { SiteSettingsMap } from "@/lib/site-settings";
@@ -38,7 +38,10 @@ export function ContactPageClient() {
 
   useEffect(() => {
     const savedLang = localStorage.getItem("lc-language") as Lang | null;
-    if (savedLang && ["fr", "en", "ar"].includes(savedLang)) setLang(savedLang);
+    if (savedLang && ["fr", "en", "ar"].includes(savedLang)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLang(savedLang);
+    }
   }, []);
 
   useEffect(() => {
@@ -59,11 +62,6 @@ export function ContactPageClient() {
 
   return (
     <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen overflow-x-clip bg-[#faf8f5] text-[#3e2723]">
-      {/* Top Bar */}
-      <div className="flex h-8 items-center justify-center bg-[#6f4e37] px-4 text-center text-[9px] font-bold uppercase tracking-[.13em] text-white sm:text-[10px]">
-        <Truck size={13} className="me-2" /> {t("freeFrom")}
-      </div>
-
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#e9dfd6]/90 bg-[#fffdfa]/92 backdrop-blur-xl">
         <div className="mx-auto flex h-[66px] max-w-[1500px] items-center justify-between px-3 sm:h-[76px] sm:px-6 lg:px-10">
@@ -206,7 +204,7 @@ export function ContactPageClient() {
       <footer className="bg-[#fffdfa] px-5 pb-28 pt-12 sm:pb-10 sm:pt-16">
         <div className="mx-auto grid max-w-[1300px] gap-10 sm:grid-cols-3 sm:items-start">
           <div><p className="font-serif text-3xl font-semibold">La Coquette</p><p className="mt-3 max-w-xs text-xs leading-6 text-[#8b776c]">Maison algérienne de mode féminine. Des silhouettes contemporaines, pensées avec grâce à Alger.</p></div>
-          <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8d7568]">{t("ourUniverse")}</p><div className="mt-4 flex flex-col gap-3 text-sm text-[#6d574c]"><Link href="/">{t("shop")}</Link><a href="/#delivery">{t("delivery")}</a><Link href="/contact">Contact</Link><Link href="/admin/login">Administration</Link></div></div>
+          <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8d7568]">{t("ourUniverse")}</p><div className="mt-4 flex flex-col gap-3 text-sm text-[#6d574c]"><Link href="/">{t("shop")}</Link><Link href="/#delivery">{t("delivery")}</Link><Link href="/contact">Contact</Link><Link href="/admin/login">Administration</Link></div></div>
           <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8d7568]">{t("follow")}</p><div className="mt-4 flex flex-col gap-3 text-xs text-[#6d574c]"><a href={`tel:${settings.phoneNumber}`} className="flex items-center gap-2"><Phone size={14} /> {settings.phoneNumber}</a><a href={`mailto:${settings.emailAddress}`} className="flex items-center gap-2"><Mail size={14} /> {settings.emailAddress}</a><div className="mt-2 flex gap-2"><a href={settings.instagramLink} target="_blank" rel="noreferrer" aria-label="Instagram" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><Instagram size={17} /></a><a href={settings.facebookLink} target="_blank" rel="noreferrer" aria-label="Facebook" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><Facebook size={17} /></a><a href={toWhatsAppLink(settings.whatsappNumber)} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><MessageCircle size={17} /></a></div></div></div>
         </div>
         <div className="mx-auto mt-12 max-w-[1300px] border-t border-[#e9dfd6] pt-5 text-[10px] text-[#99867b]">© {new Date().getFullYear()} La Coquette. {t("rights")}</div>
@@ -222,7 +220,7 @@ export function ContactPageClient() {
 
       {/* Mobile Menu */}
       <AnimatePresence>
-        {menuOpen && <><motion.button aria-label={t("close")} className="fixed inset-0 z-[60] bg-[#35231d]/30 backdrop-blur-sm" onClick={() => setMenuOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} /><motion.aside initial={{ x: isRtl ? "100%" : "-100%" }} animate={{ x: 0 }} exit={{ x: isRtl ? "100%" : "-100%" }} transition={{ type: "spring", stiffness: 300, damping: 31 }} className="fixed inset-y-0 start-0 z-[70] w-[86%] max-w-sm bg-[#fffdfa] p-6 shadow-2xl"><div className="flex items-center justify-between"><span className="font-serif text-3xl font-semibold">La Coquette</span><button onClick={() => setMenuOpen(false)} className="grid size-11 place-items-center rounded-full bg-[#f2ebe4]"><X size={19} /></button></div><nav className="mt-12 flex flex-col gap-2"><Link href="/" onClick={() => setMenuOpen(false)} className="border-b border-[#ece2d9] py-4 font-serif text-3xl">{t("shop")}</Link><Link href="/contact" onClick={() => setMenuOpen(false)} className="border-b border-[#ece2d9] py-4 font-serif text-3xl">Contact</Link><a href="/#delivery" onClick={() => setMenuOpen(false)} className="border-b border-[#ece2d9] py-4 font-serif text-3xl">{t("delivery")}</a></nav><div className="mt-10 flex gap-2">{languages.map((item) => <button key={item.value} onClick={() => setLang(item.value)} className={`grid size-12 place-items-center rounded-full text-xs font-bold ${lang === item.value ? "bg-[#6f4e37] text-white" : "bg-[#eee6df]"}`}>{item.label}</button>)}</div><div className="mt-6 flex gap-2"><a href={settings.instagramLink} target="_blank" rel="noreferrer" aria-label="Instagram" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><Instagram size={17} /></a><a href={settings.facebookLink} target="_blank" rel="noreferrer" aria-label="Facebook" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><Facebook size={17} /></a><a href={toWhatsAppLink(settings.whatsappNumber)} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><MessageCircle size={17} /></a></div></motion.aside></>}
+        {menuOpen && <><motion.button aria-label={t("close")} className="fixed inset-0 z-[60] bg-[#35231d]/30 backdrop-blur-sm" onClick={() => setMenuOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} /><motion.aside initial={{ x: isRtl ? "100%" : "-100%" }} animate={{ x: 0 }} exit={{ x: isRtl ? "100%" : "-100%" }} transition={{ type: "spring", stiffness: 300, damping: 31 }} className="fixed inset-y-0 start-0 z-[70] w-[86%] max-w-sm bg-[#fffdfa] p-6 shadow-2xl"><div className="flex items-center justify-between"><span className="font-serif text-3xl font-semibold">La Coquette</span><button onClick={() => setMenuOpen(false)} className="grid size-11 place-items-center rounded-full bg-[#f2ebe4]"><X size={19} /></button></div><nav className="mt-12 flex flex-col gap-2"><Link href="/" onClick={() => setMenuOpen(false)} className="border-b border-[#ece2d9] py-4 font-serif text-3xl">{t("shop")}</Link><Link href="/contact" onClick={() => setMenuOpen(false)} className="border-b border-[#ece2d9] py-4 font-serif text-3xl">Contact</Link><Link href="/#delivery" onClick={() => setMenuOpen(false)} className="border-b border-[#ece2d9] py-4 font-serif text-3xl">{t("delivery")}</Link></nav><div className="mt-10 flex gap-2">{languages.map((item) => <button key={item.value} onClick={() => setLang(item.value)} className={`grid size-12 place-items-center rounded-full text-xs font-bold ${lang === item.value ? "bg-[#6f4e37] text-white" : "bg-[#eee6df]"}`}>{item.label}</button>)}</div><div className="mt-6 flex gap-2"><a href={settings.instagramLink} target="_blank" rel="noreferrer" aria-label="Instagram" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><Instagram size={17} /></a><a href={settings.facebookLink} target="_blank" rel="noreferrer" aria-label="Facebook" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><Facebook size={17} /></a><a href={toWhatsAppLink(settings.whatsappNumber)} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><MessageCircle size={17} /></a></div></motion.aside></>}
       </AnimatePresence>
     </div>
   );

@@ -57,12 +57,21 @@ export function Storefront({ products, categories, rates, focusProduct, related 
     const savedLang = localStorage.getItem("lc-language") as Lang | null;
     const savedCart = localStorage.getItem("lc-cart");
     const savedWishlist = localStorage.getItem("lc-wishlist");
-    if (savedLang && ["fr", "en", "ar"].includes(savedLang)) setLang(savedLang);
+    if (savedLang && ["fr", "en", "ar"].includes(savedLang)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLang(savedLang);
+    }
     if (savedCart) {
-      try { setCart(JSON.parse(savedCart)); } catch { /* ignore stale storage */ }
+      try {
+        const parsed: CartLine[] = JSON.parse(savedCart);
+        setCart(parsed);
+      } catch { /* ignore stale storage */ }
     }
     if (savedWishlist) {
-      try { setWishlist(JSON.parse(savedWishlist)); } catch { /* ignore stale storage */ }
+      try {
+        const parsed: number[] = JSON.parse(savedWishlist);
+        setWishlist(parsed);
+      } catch { /* ignore stale storage */ }
     }
   }, []);
 
@@ -74,7 +83,11 @@ export function Storefront({ products, categories, rates, focusProduct, related 
 
   useEffect(() => { localStorage.setItem("lc-cart", JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem("lc-wishlist", JSON.stringify(wishlist)); }, [wishlist]);
-  useEffect(() => { setPage(1); }, [search, category, size, maxPrice, sort, wishedOnly, color, inStock, discountOnly, minPrice]);
+  useEffect(() => {
+    // Reset to first page whenever the active filter/sort set changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPage(1);
+  }, [search, category, size, maxPrice, sort, wishedOnly, color, inStock, discountOnly, minPrice]);
 
   const sessionId = useMemo(() => {
     if (typeof window !== "undefined") {
@@ -167,7 +180,7 @@ export function Storefront({ products, categories, rates, focusProduct, related 
     return [...set];
   }, [products]);
 
-  const FilterContent = () => (
+  const filterContent = (
     <div className="space-y-7">
       <div>
         <p className="mb-3 text-[10px] font-bold uppercase tracking-[.16em] text-[#8d7568]">{t("category")}</p>
@@ -198,9 +211,6 @@ export function Storefront({ products, categories, rates, focusProduct, related 
 
   return (
     <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen overflow-x-clip bg-[#faf8f5] text-[#3e2723]">
-      <div className="flex h-8 items-center justify-center bg-[#6f4e37] px-4 text-center text-[9px] font-bold uppercase tracking-[.13em] text-white sm:text-[10px]">
-        <Truck size={13} className="me-2" /> {t("freeFrom")}
-      </div>
       <header className="sticky top-0 z-50 border-b border-[#e9dfd6]/90 bg-[#fffdfa]/92 backdrop-blur-xl">
         <div className="mx-auto flex h-[66px] max-w-[1500px] items-center justify-between px-3 sm:h-[76px] sm:px-6 lg:px-10">
           <div className="flex min-w-0 flex-1 items-center gap-2 lg:gap-7">
@@ -267,7 +277,7 @@ export function Storefront({ products, categories, rates, focusProduct, related 
             </div>
 
             <div className={`grid min-w-0 gap-6 ${filtersVisible ? "sm:grid-cols-[190px_minmax(0,1fr)] lg:grid-cols-[220px_minmax(0,1fr)]" : "grid-cols-1"}`}>
-              {filtersVisible && <aside className="hidden self-start rounded-[22px] border border-[#e6dcd3] bg-white p-4 sm:sticky sm:top-[105px] sm:block lg:p-5"><FilterContent /></aside>}
+              {filtersVisible && <aside className="hidden self-start rounded-[22px] border border-[#e6dcd3] bg-white p-4 sm:sticky sm:top-[105px] sm:block lg:p-5">{filterContent}</aside>}
               <div className="min-w-0">
                 {visibleProducts.length ? <motion.div layout className={`grid grid-cols-2 gap-x-2.5 gap-y-7 sm:gap-x-4 sm:gap-y-9 ${filtersVisible ? "md:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-3 lg:grid-cols-4"}`}>{visibleProducts.map((product, index) => <ProductCard key={product.id} product={product} lang={lang} t={t} wished={wishlist.includes(product.id)} onWish={toggleWish} onQuick={setQuick} priority={index < 4 && page === 1} />)}</motion.div> : <div className="grid min-h-[40vh] place-items-center rounded-3xl bg-[#f3ede7] px-6 text-center"><div><Search className="mx-auto text-[#9c8474]" strokeWidth={1.3} size={36} /><p className="mt-4 font-serif text-2xl text-[#5c4235]">{t("noProducts")}</p><button onClick={resetFilters} className="mt-5 text-xs font-bold uppercase tracking-[.12em] text-[#79533e] underline underline-offset-4">{t("reset")}</button></div></div>}
                 {pageCount > 1 && <nav className="mt-12 flex items-center justify-center gap-2" aria-label="Pagination"><button disabled={page === 1} onClick={() => { setPage(page - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={t("previous")} className="grid size-11 place-items-center rounded-full border border-[#ded2c7] bg-white disabled:opacity-35"><ChevronLeft size={17} className={isRtl ? "rotate-180" : ""} /></button>{Array.from({ length: pageCount }, (_, index) => <button key={index} onClick={() => setPage(index + 1)} className={`grid size-11 place-items-center rounded-full text-xs font-bold ${page === index + 1 ? "bg-[#6f4e37] text-white" : "bg-white text-[#674c3d]"}`}>{index + 1}</button>)}<button disabled={page === pageCount} onClick={() => { setPage(page + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={t("next")} className="grid size-11 place-items-center rounded-full border border-[#ded2c7] bg-white disabled:opacity-35"><ChevronRight size={17} className={isRtl ? "rotate-180" : ""} /></button></nav>}
@@ -298,7 +308,7 @@ export function Storefront({ products, categories, rates, focusProduct, related 
 
       <AnimatePresence>
         {menuOpen && <><motion.button aria-label={t("close")} className="fixed inset-0 z-[60] bg-[#35231d]/30 backdrop-blur-sm" onClick={() => setMenuOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} /><motion.aside initial={{ x: isRtl ? "100%" : "-100%" }} animate={{ x: 0 }} exit={{ x: isRtl ? "100%" : "-100%" }} transition={{ type: "spring", stiffness: 300, damping: 31 }} className="fixed inset-y-0 start-0 z-[70] w-[86%] max-w-sm bg-[#fffdfa] p-6 shadow-2xl"><div className="flex items-center justify-between"><span className="font-serif text-3xl font-semibold">La Coquette</span><button onClick={() => setMenuOpen(false)} className="grid size-11 place-items-center rounded-full bg-[#f2ebe4]"><X size={19} /></button></div><nav className="mt-12 flex flex-col gap-2"><Link href="/" onClick={() => setMenuOpen(false)} className="border-b border-[#ece2d9] py-4 font-serif text-3xl">{t("shop")}</Link><button onClick={() => { setSort("newest"); setMenuOpen(false); }} className="border-b border-[#ece2d9] py-4 text-start font-serif text-3xl">{t("newCollection")}</button><a href="#delivery" onClick={() => setMenuOpen(false)} className="border-b border-[#ece2d9] py-4 font-serif text-3xl">{t("delivery")}</a><Link href="/contact" onClick={() => setMenuOpen(false)} className="border-b border-[#ece2d9] py-4 font-serif text-3xl">Contact</Link></nav><div className="mt-10 flex gap-2">{languages.map((item) => <button key={item.value} onClick={() => setLang(item.value)} className={`grid size-12 place-items-center rounded-full text-xs font-bold ${lang === item.value ? "bg-[#6f4e37] text-white" : "bg-[#eee6df]"}`}>{item.label}</button>)}</div><div className="mt-6 flex gap-2"><a href="https://www.instagram.com/lacoquette.brand" target="_blank" rel="noreferrer" aria-label="Instagram" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><Instagram size={17} /></a><a href="https://www.facebook.com/share/1BRYR8uzsZ/?mibextid=wwXIfr" target="_blank" rel="noreferrer" aria-label="Facebook" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><Facebook size={17} /></a><a href="https://wa.me/213541442571?text=Bonjour%20La%20Coquette" target="_blank" rel="noreferrer" aria-label="WhatsApp" className="grid size-11 place-items-center rounded-full border border-[#ded2c8] hover:bg-[#efe6de]"><MessageCircle size={17} /></a></div></motion.aside></>}
-        {filterOpen && <><motion.button className="fixed inset-0 z-[60] bg-[#35231d]/30 backdrop-blur-sm" onClick={() => setFilterOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} aria-label={t("close")} /><motion.aside initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 300, damping: 31 }} className="fixed inset-x-0 bottom-0 z-[70] max-h-[88vh] overflow-y-auto rounded-t-[28px] bg-[#fffdfa] px-5 pb-[max(24px,env(safe-area-inset-bottom))] pt-4"><div className="mx-auto mb-4 h-1 w-12 rounded-full bg-[#d8c9bd]" /><div className="mb-6 flex items-center justify-between"><h2 className="font-serif text-3xl font-semibold">{t("filters")}</h2><button onClick={() => setFilterOpen(false)} className="grid size-11 place-items-center rounded-full bg-[#f1e9e2]"><X size={18} /></button></div><FilterContent /><button onClick={() => setFilterOpen(false)} className="mt-4 h-14 w-full rounded-2xl bg-[#6f4e37] text-sm font-bold text-white">{t("productsLabel")} · {filtered.length}</button></motion.aside></>}
+        {filterOpen && <><motion.button className="fixed inset-0 z-[60] bg-[#35231d]/30 backdrop-blur-sm" onClick={() => setFilterOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} aria-label={t("close")} /><motion.aside initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 300, damping: 31 }} className="fixed inset-x-0 bottom-0 z-[70] max-h-[88vh] overflow-y-auto rounded-t-[28px] bg-[#fffdfa] px-5 pb-[max(24px,env(safe-area-inset-bottom))] pt-4"><div className="mx-auto mb-4 h-1 w-12 rounded-full bg-[#d8c9bd]" /><div className="mb-6 flex items-center justify-between"><h2 className="font-serif text-3xl font-semibold">{t("filters")}</h2><button onClick={() => setFilterOpen(false)} className="grid size-11 place-items-center rounded-full bg-[#f1e9e2]"><X size={18} /></button></div>{filterContent}<button onClick={() => setFilterOpen(false)} className="mt-4 h-14 w-full rounded-2xl bg-[#6f4e37] text-sm font-bold text-white">{t("productsLabel")} · {filtered.length}</button></motion.aside></>}
         {quick && <><motion.button aria-label={t("close")} onClick={() => setQuick(null)} className="fixed inset-0 z-[80] bg-[#33211b]/45 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} /><motion.div role="dialog" aria-modal="true" initial={{ opacity: 0, y: 30, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: .98 }} className="fixed inset-x-0 bottom-0 z-[90] max-h-[92vh] overflow-y-auto rounded-t-[28px] bg-[#fffdfa] p-4 pb-8 shadow-2xl sm:inset-auto sm:start-1/2 sm:top-1/2 sm:w-[min(930px,92vw)] sm:max-h-[88vh] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[28px] sm:p-7"><button onClick={() => setQuick(null)} className="sticky top-0 z-20 ms-auto grid size-11 place-items-center rounded-full bg-white text-[#52382d] shadow-md"><X size={18} /></button><div className="-mt-8 pt-1"><ProductView product={quick} lang={lang} t={t} compact onAdd={addCart} onClose={() => setQuick(null)} /></div></motion.div></>}
       </AnimatePresence>
 
