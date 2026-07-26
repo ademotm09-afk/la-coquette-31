@@ -1,4 +1,5 @@
 import { getSiteSettingsMap, upsertSiteSettings, type SiteSettingsMap } from "@/lib/site-settings";
+import { isAdmin, unauthorizedResponse } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  if (!(await isAdmin())) return unauthorizedResponse();
   try {
     const body = await request.json();
     const allowedKeys: (keyof SiteSettingsMap)[] = [

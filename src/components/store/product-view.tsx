@@ -29,6 +29,8 @@ export function ProductView({ product, lang, t, compact = false, onAdd, onClose 
   const discount = product.compareAtPrice ? Math.round((1 - product.price / product.compareAtPrice) * 100) : 0;
 
   useEffect(() => {
+    // Reset local selection state when the displayed product changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setImageIndex(0);
     setSize("");
     setColor(product.colors[0]?.name || "");

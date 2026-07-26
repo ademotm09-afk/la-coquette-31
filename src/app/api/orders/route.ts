@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { orderItems, orders, products, shippingRates } from "@/db/schema";
 import { bootstrapStore } from "@/lib/data";
-import { sendOrderNotification } from "@/lib/email";
+import { sendTelegramNotification } from "@/lib/telegram";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 type RequestedItem = { productId: number; quantity: number; size: string; color: string };
@@ -92,14 +92,15 @@ export async function POST(request: Request) {
       return order;
     });
 
-    // Send email notification (non-blocking)
-    sendOrderNotification({
+    // Send Telegram notification (non-blocking — order is already saved)
+    sendTelegramNotification({
       orderNumber: created.orderNumber,
       customerName: fullName,
       phone,
       address,
-      wilaya: created.wilayaName,
       commune,
+      wilaya: created.wilayaName,
+      deliveryType,
       items: checkedItems.map((item) => ({
         productName: item.product.nameFr,
         size: item.size,
@@ -108,9 +109,10 @@ export async function POST(request: Request) {
         unitPrice: item.product.price,
         total: item.total,
       })),
-      deliveryType,
+      subtotal,
       shippingPrice: created.shippingPrice,
       total: created.total,
+      note: created.note,
       createdAt: created.createdAt,
     }).catch(() => {});
 
